@@ -13,3 +13,5 @@ basic_test.sh
 syntax.tab.h
 syntax.tab.c
 syntax.output
+
+.DS_Store

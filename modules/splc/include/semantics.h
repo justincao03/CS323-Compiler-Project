@@ -4,6 +4,8 @@
 #include "splcdef.h"
 #include "ast.h"
 #include "lut.h"
+#include "expr.h"
+
 
 /* expression type enum */
 typedef struct sem_expr_entry_struct

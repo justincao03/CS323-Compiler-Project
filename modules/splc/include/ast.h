@@ -4,6 +4,7 @@
 
 #include "splcdef.h"
 #include "lut.h"
+#include "expr.h"
 
 /* Struct definitions */
 

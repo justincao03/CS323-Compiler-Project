@@ -3,6 +3,7 @@
 #define LUT_H
 
 #include "splcdef.h"
+#include "expr.h"
 
 #include <stddef.h>
 
@@ -32,6 +33,8 @@ typedef struct lut_entry_struct
                         LUT has no control of this root but to release reference count,
                         as it is a direct assignment. */
     int is_defined;
+
+    expr_node expr; /* EXPERIMENTAL: Type expression of lut_entry */
 
 } lut_entry_struct;
 

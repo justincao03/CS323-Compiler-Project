@@ -607,29 +607,6 @@ static void legacy_ast_search(ast_node node, ast_node fa_node, splc_trans_unit t
         {
             SPLC_FMSG(SPLM_ERR_SEM_1, node->location, "variable `%s` is undefined", var_name);
         }
-        // else
-        // {
-        //     // SPLC_DIAG("checking indexing operator.");
-        //     // check unvalid use of indexing operator
-        //     // TODO: check the tree structrue of nodes and figure out the exact fault
-        //     //(but the array structure is diffrent in declaration and usage)
-        //     ast_node var_node = var_entry->root;
-        //     int decl_num = (var_node->num_child) / 3; // declared number of level
-        //     int use_num = 0;                          // used number of level
-        //     ast_node tmp_node = node->father;         // root SPLT_EXPR
-        //     while (tmp_node->type == SPLT_EXPR && (tmp_node->children[(tmp_node->num_child) - 1])->type == SPLT_RSB)
-        //     {
-        //         use_num++;
-        //         tmp_node = tmp_node->father;
-        //         if ((tmp_node->children[0])->type != SPLT_EXPR)
-        //             break;
-        //     }
-        //     if (decl_num < use_num)
-        //     {
-        //         SPLC_FMSG(SPLM_ERR_SEM_10, node->location,
-        //                     "applying indexing operation on non-array type variable `%s`", var_name);
-        //     }
-        // }
     }
 
     // check errors when using functions
@@ -805,6 +782,64 @@ int are_types_equal(const char *spec_type1, const char *spec_type2, splc_token_t
             strcmp(spec_type1, splc_token2str(token_literal)) == 0) &&
            (strcmp(spec_type2, splc_token2str(token_type)) == 0 ||
             strcmp(spec_type2, splc_token2str(token_literal)) == 0);
+}
+
+/*  */
+expr_node expr_lut2expr(lut_entry ent)
+{
+    expr_node node = expr_create_empty_node();
+    if (strcmp(ent->spec_type, splc_token2str(SPLT_TYPE_INT)) == 0)
+    {
+        node->type = EXPR_INT;
+    }
+    else if (strcmp(ent->spec_type, splc_token2str(SPLT_TYPE_FLOAT)) == 0)
+    {
+        node->type = EXPR_FLOAT;
+    }
+    else if (strcmp(ent->spec_type, splc_token2str(SPLT_TYPE_CHAR)) == 0)
+    {
+        node->type = EXPR_CHAR;
+    }
+    else 
+    {
+        // TODO: STRUCT, FUNC, ARRAY
+    }
+    return node;
+}
+
+expr_node expr_process_id(const ast_node node, splc_trans_unit tunit)
+{
+    lut_entry ent = find_envs(tunit, (char *)(node->val), SPLE_VAR);
+    if (ent)
+    {
+       return expr_lut2expr(ent);
+    }
+    return NULL;
+}
+
+expr_node expr_process(const ast_node node, splc_trans_unit tunit)
+{
+    if (node->symtable)
+    {
+        splc_push_existing_symtable(tunit, node->symtable);
+    }
+
+    if (SPLT_IS_ID(node->type))
+    {
+        return expr_process_id(node, tunit);
+    }
+    if (SPLT_IS_LITERAL(node->type))
+    {
+        // TODO
+        return expr_process_literal(node, tunit);
+    }
+
+    // CallExpr
+    if (node->type == SPLT_CALL_EXPR)
+    {
+        // TODO
+        return expr_process_call_expr(node, tunit);
+    }
 }
 
 expr_entry sem_process_expr(const ast_node node, splc_trans_unit tunit, const int msg_cond)
@@ -1030,8 +1065,7 @@ expr_entry sem_process_expr(const ast_node node, splc_trans_unit tunit, const in
 
         if (!(left->decl_num - left->level == right->decl_num - right->level))
         {
-            SPLC_COND_MSG(msg_cond, SPLM_ERR_SEM_5, node->location,
-                          "Unmatched level of dereferencing on operands");
+            SPLC_COND_MSG(msg_cond, SPLM_ERR_SEM_5, node->location, "Unmatched level of dereferencing on operands");
             return NULL;
         }
 

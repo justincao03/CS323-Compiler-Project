@@ -4,6 +4,7 @@
 
 #include <string.h>
 #include <stdlib.h>
+#include <stdarg.h>
 
 expr_node expr_create_empty_node()
 {

@@ -3,6 +3,8 @@
 #include "type.h"
 #include "utils.h"
 
+
+
 static void experimental_analyze_dispatch(splc_trans_unit tunit, ast_node node, int root_env_idx);
 
 // EXPERIMENTAL
@@ -733,8 +735,8 @@ expr_node expr_process_call_expr(const ast_node node, splc_trans_unit tunit)
         {
             if (!expr_type_checking(func_expr->args[i + 1], arg_expr))
             {
-                SPLC_FMSG(SPLM_ERR_SEM_9, arg_list->children[i]->location,
-                          "invalid argument type, except `%s`, got `%s`", func_expr->args[i + 1]->type, arg_expr->type);
+                SPLC_MSG(SPLM_ERR_SEM_9, arg_list->children[i]->location,
+                          "invalid argument type");
             }
         }
     }
@@ -878,7 +880,7 @@ expr_node expr_process_expr(const ast_node node, splc_trans_unit tunit)
     }
     else if (node->num_child == 4)
     {
-        if (node->children[1] == SPLT_LSB)
+        if (node->children[1]->type == SPLT_LSB)
         {
             return expr_process_array(node, tunit);
         }

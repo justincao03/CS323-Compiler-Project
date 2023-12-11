@@ -19,16 +19,19 @@ enum expr_type
     EXPR_DOUBLE,
     EXPR_CHAR,
 
+    EXPR_STRUCT,
     EXPR_ARRAY, /* Two args: size of array and type expression of the declarator */
     EXPR_FUNC, /*  */
     EXPT_POINTER
 };
 
 /* type expresssion node struct */
-typedef expr_node_struct *expr_node;
+typedef struct expr_node_struct *expr_node;
 typedef struct expr_node_struct
 {
     expr_t type; /* type of the expression */
+    char *id; /* id of node, if any */
+    int lvalue; /* whether the node can be lvalue */
 
     size_t num_arg; /* number of arguments */
     expr_node *args; /* args of type expression */
@@ -40,10 +43,11 @@ typedef struct expr_node_struct
 expr_node expr_create_empty_node();
 
 /* Create a node given type. */
-expr_node expr_create_node(const expr_t type);
+expr_node expr_create_node(const expr_t type, const char *name);
+
 
 /* Create a node given type with args. */
-expr_node expr_create_node_with_args(const expr_t type, size_t num_arg, ...);
+expr_node expr_create_node_with_args(const expr_t type, const char *name, size_t num_arg, ...);
 
 /* Recusively copy. */
 expr_node expr_deep_copy(const expr_node node);

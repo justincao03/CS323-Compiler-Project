@@ -2,7 +2,7 @@
 #include "splcdef.h"
 #include "utils.h"
 
-
+#include <string.h>
 #include <stdlib.h>
 
 expr_node expr_create_empty_node()
@@ -10,24 +10,27 @@ expr_node expr_create_empty_node()
     expr_node node = (expr_node)malloc(sizeof(expr_node_struct));
     SPLC_ALLOC_PTR_CHECK(node, "out of memory creating empty expression node");
     node->type = EXPR_NULL;
+    node->id = NULL;
+    node->lvalue = 1; /* default 1 */
     node->num_arg = 0;
     node->args = NULL;
     
     return node;
 }
 
-expr_node expr_create_node(const expr_t type)
+expr_node expr_create_node(const expr_t type, const char *name)
 {
     expr_node node = expr_create_empty_node();
     node->type = type;
-
+    node->id = name ? strdup(name) : NULL;
     return node;
 }
 
-expr_node expr_create_node_with_args(const expr_t type, size_t num_arg, ...)
+expr_node expr_create_node_with_args(const expr_t type, const char *name, size_t num_arg, ...)
 {
     expr_node node = expr_create_empty_node();
     node->type = type;
+    node->id = name ? strdup(name) : NULL;
 
     if (num_arg > 0)
     {
@@ -58,6 +61,7 @@ expr_node expr_deep_copy(const expr_node node)
 
     expr_node result = expr_create_empty_node();
     result->type = node->type;
+    result->id = node->id ? strdup(node->id) : NULL;
     
     /* Copy arguments */
     if (node->num_arg > 0)
@@ -76,7 +80,19 @@ expr_node expr_deep_copy(const expr_node node)
 
 int expr_type_checking(const expr_node node1, const expr_node node2)
 {
+    // TODO: Type conversion
+    if (node1->type != node2->type)
+    {
+        return 0;
+    }
 
+    if (node1->num_arg != node2->num_arg)
+    {
+        return 0;
+    }
+
+    
+    
 }
 
 

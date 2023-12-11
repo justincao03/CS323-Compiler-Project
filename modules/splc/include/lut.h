@@ -63,6 +63,11 @@ void lut_free_table(lut_table *table);
    Return NULL if such entry doesn't exist. */
 lut_entry lut_find(const lut_table table, const char *name, const splc_entry_t type);
 
+/* Find the value of a name in hashtables reversibly. 
+   Table must be valid and nonnull, and key must be nonnull.
+   Return NULL if such entry doesn't exist. */
+lut_entry lut_find_in_tables(size_t num_table, const lut_table *table, const char *name, const splc_entry_t type);
+
 /* Find the value of a name in the hashtable. Table must be valid and nonnull, and key must be nonnull.
    Return NULL if such entry doesn't exist.
    Return the FIRST valid entry. */

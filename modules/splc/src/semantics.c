@@ -677,7 +677,7 @@ static void legacy_ast_search(ast_node node, ast_node fa_node, splc_trans_unit t
 lut_entry find_envs(const splc_trans_unit tunit, const char *name, const splc_entry_t type)
 {
     lut_entry ent = NULL;
-    for (int i = 0; i < tunit->nenvs; i++)
+    for (int i = tunit->nenvs - 1; i >= 0; i--)
     {
 
         ent = lut_find(tunit->envs[i], name, type);
@@ -784,37 +784,125 @@ int are_types_equal(const char *spec_type1, const char *spec_type2, splc_token_t
             strcmp(spec_type2, splc_token2str(token_literal)) == 0);
 }
 
-/*  */
-expr_node expr_lut2expr(lut_entry ent)
-{
-    expr_node node = expr_create_empty_node();
-    if (strcmp(ent->spec_type, splc_token2str(SPLT_TYPE_INT)) == 0)
-    {
-        node->type = EXPR_INT;
-    }
-    else if (strcmp(ent->spec_type, splc_token2str(SPLT_TYPE_FLOAT)) == 0)
-    {
-        node->type = EXPR_FLOAT;
-    }
-    else if (strcmp(ent->spec_type, splc_token2str(SPLT_TYPE_CHAR)) == 0)
-    {
-        node->type = EXPR_CHAR;
-    }
-    else 
-    {
-        // TODO: STRUCT, FUNC, ARRAY
-    }
-    return node;
-}
-
 expr_node expr_process_id(const ast_node node, splc_trans_unit tunit)
 {
-    lut_entry ent = find_envs(tunit, (char *)(node->val), SPLE_VAR);
+    // TODO: The id of lut_entry should be put in expr
+    lut_entry ent = lut_find_in_tables(tunit->nenvs, tunit->envs, (char *)(node->val), SPLE_VAR);
     if (ent)
     {
-       return expr_lut2expr(ent);
+        // TODO: construct expr_node of lut_entry correctly
+        return ent->expr;
     }
     return NULL;
+}
+
+expr_node expr_process_literal(const ast_node node, splc_trans_unit tunit)
+{
+    expr_node result = expr_create_empty_node();
+    splc_token_t type = node->children[0]->type;
+    if (type == SPLT_LTR_INT)
+    {
+        result->type = EXPR_INT;
+    }
+    else if (type == SPLT_LTR_FLOAT)
+    {
+        result->type = EXPR_FLOAT;
+    }
+    else if (type == SPLT_LTR_CHAR)
+    {
+        result->type = EXPR_CHAR;
+    }
+    result->lvalue = 0; // set to non-lvalue
+    return result;
+}
+
+expr_node expr_process_call_expr(const ast_node node, splc_trans_unit tunit)
+{
+}
+
+expr_node expr_process_dot(const ast_node node, splc_trans_unit tunit)
+{
+    expr_node struct_var_expr = expr_process(node->children[0], tunit);
+    if (struct_var_expr && struct_var_expr->type == EXPR_STRUCT)
+    {
+        lut_entry struct_ent = lut_find_in_tables(tunit->nenvs, tunit->envs, struct_var_expr->id, SPLE_STRUCT_DEC);
+        if (struct_ent)
+        {
+            lut_entry member_ent = lut_find(struct_ent->root->symtable, (char *)(node->children[2]->val), SPLE_VAR);
+            if (member_ent)
+            {
+                return member_ent->expr;
+            }
+            else
+            {
+                // no specific member in the struct declaration
+                SPLC_MSG(SPLM_ERR_SEM_14, node->children[2]->location, "accessing an undefined structure member");
+                return NULL;
+            }
+        }
+        else
+        {
+            SPLC_MSG(SPLM_ERR_SEM_13, node->children[1]->location, "accessing members of a non-structure variable");
+            return NULL;
+        }
+    }
+    return NULL;
+}
+
+expr_node expr_process_eq(const ast_node node, splc_trans_unit tunit)
+{
+    // TODO type checking
+    expr_node result = expr_create_empty_node();
+    result->lvalue = 0;
+    result->type = EXPR_INT;
+    return result;
+
+}
+
+expr_node expr_process_expr(const ast_node node, splc_trans_unit tunit)
+{
+    if (node->num_child == 1)
+    {
+        return expr_process(node->children[0], tunit);
+    }
+    else if (node->num_child == 2)
+    {
+        // unary
+        int expr_idx = node->children[0]->type == SPLT_ID || node->children[0]->type == SPLT_EXPR ? 0 : 1;
+        expr_node expr = expr_process_expr(node->children[expr_idx], tunit);
+        if (!(expr->type == EXPR_INT || expr->type == EXPR_CHAR || expr->type == EXPR_FLOAT))
+        {
+            SPLC_MSG(SPLM_ERR_SEM_7, node->location, "unmatching operands");
+        }
+        expr->lvalue = 0; // set to non-lvalue
+        return expr;
+    }
+    else if (node->num_child == 3)
+    {
+        if (node->children[1]->type == SPLT_DOT)
+        {
+            return expr_process_dot(node, tunit);
+        }
+        else if (node->children[1]->type == SPLT_EQ)
+        {
+            return expr_process_eq(node, tunit);
+        }
+        else 
+        {
+            expr_node left = expr_process(node->children[0], tunit);
+            expr_node right = expr_process(node->children[2], tunit);
+
+            if (left == NULL || right == NULL)
+            {
+                return NULL;
+            }
+
+            if (node->children[1]->type == SPLT_ASSIGN)
+            {
+                
+            }
+        }
+    }
 }
 
 expr_node expr_process(const ast_node node, splc_trans_unit tunit)
@@ -824,22 +912,43 @@ expr_node expr_process(const ast_node node, splc_trans_unit tunit)
         splc_push_existing_symtable(tunit, node->symtable);
     }
 
-    if (SPLT_IS_ID(node->type))
+    else if (SPLT_IS_ID(node->type))
     {
         return expr_process_id(node, tunit);
     }
-    if (SPLT_IS_LITERAL(node->type))
+    else if (SPLT_IS_LITERAL(node->type))
     {
-        // TODO
         return expr_process_literal(node, tunit);
     }
 
     // CallExpr
-    if (node->type == SPLT_CALL_EXPR)
+    else if (node->type == SPLT_CALL_EXPR)
     {
         // TODO
         return expr_process_call_expr(node, tunit);
     }
+
+    else if (node->type == SPLT_EXPR)
+    {
+        // TODO
+        return expr_process_expr(node, tunit);
+    }
+    else if (node->type == SPLT_INIT_DEC)
+    {
+        // TODO
+    }
+
+    for (int i = 0; i < node->num_child; i++)
+    {
+        expr_process(node->children[i], tunit);
+    }
+
+    if (node->symtable)
+    {
+        splc_pop_symtable(tunit);
+    }
+
+    return NULL;
 }
 
 expr_entry sem_process_expr(const ast_node node, splc_trans_unit tunit, const int msg_cond)

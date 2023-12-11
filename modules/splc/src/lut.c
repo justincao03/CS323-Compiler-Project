@@ -270,6 +270,20 @@ char *lut_get_info_string(lut_table table)
     return buffer;
 }
 
+lut_entry lut_find_in_tables(size_t num_table, const lut_table *tables, const char *name, const splc_entry_t type)
+{
+    lut_entry target = NULL;
+    for (int i = num_table - 1; i >= 0; i--)
+    {
+        target = lut_find(tables[i], name, type);
+        if (target)
+        {
+            return target;
+        }
+    }
+    return NULL;
+}
+
 void lut_debug_print(FILE stream, lut_table table)
 {
     // TODO(lut): print debug information

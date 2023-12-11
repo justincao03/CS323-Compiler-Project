@@ -290,6 +290,8 @@ typedef struct ast_node_struct *ast_node;
 struct sem_expr_entry_struct;
 typedef struct sem_expr_entry_struct *expr_entry;
 
+struct expr_node_struct;
+typedef struct expr_node_struct *expr_node;
 
 /* Flex & Bison */
 struct YYLTYPE;

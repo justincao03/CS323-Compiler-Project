@@ -4,6 +4,8 @@
 #include "ast.h"
 #include "splcdef.h"
 
+#define EXPR_NUMERICAL_OFFSET 0x00001000
+
 /* expression type enumeration */
 typedef enum expr_type expr_t;
 enum expr_type
@@ -11,7 +13,7 @@ enum expr_type
     EXPR_NULL = 0x00000000,
     EXPR_VOID,
 
-    EXPR_INT,
+    EXPR_INT = EXPR_NUMERICAL_OFFSET,
     EXPR_UNSIGNED_INT,
     EXPR_LONG,
     EXPR_UNSIGNED_LONG,
@@ -19,11 +21,14 @@ enum expr_type
     EXPR_DOUBLE,
     EXPR_CHAR,
 
-    EXPR_STRUCT,
+    EXPR_STRUCT = 0x00002000,
     EXPR_ARRAY, /* Two args: size of array and type expression of the declarator */
-    EXPR_FUNC, /*  */
+    EXPR_FUNC, /* args: first arg is return type, followed by arg list */
     EXPT_POINTER
 };
+
+#define EXPR_IS_NUMERICAL(x) (((x) & EXPR_NUMERICAL_OFFSET) == EXPR_NUMERICAL_OFFSET)
+
 
 /* type expresssion node struct */
 typedef struct expr_node_struct *expr_node;

@@ -91,8 +91,16 @@ int expr_type_checking(const expr_node node1, const expr_node node2)
         return 0;
     }
 
-    
-    
+    for (int i = 0; i < node1->num_arg; i++)
+    {
+        // Recursive checking
+        if (expr_type_checking(node1->args[i], node2->args[i]) == 0)
+        {
+            return 0;
+        }
+    }
+
+    return 1;
 }
 
 
